@@ -1,25 +1,16 @@
 import bpy
+import os
 import sys
 import requests
-import json
-import pickle 
-import os
+import json 
 
-import subprocess
-import sys
 
 # web3 dependency support
 lib_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "lib")
 sys.path += [lib_dir]
-
-#sys.path += [r"C:\Users\stoly\AppData\Local\Programs\Python\Python310\Lib\site-packages"]
-
 from web3 import Web3
-import pinata
-# Connect to a local Ganache blockchain
-w3 = Web3(Web3.HTTPProvider('http://localhost:7545'))
 
-# Define the contract ABI and address
+# Contract ABI definition
 contract_abi = [
     {
         "inputs": [],
@@ -606,13 +597,9 @@ contract_abi = [
         "type": "function"
     }
 ]
-headers = {
-                'pinata_api_key': 'e3c4a8f9959c5bc970e3',
-                'pinata_secret_api_key': '06dbaccac51438159d5f9be50be03ea67eb9b0cb8dec0cec978cc4e6482cefa0'
-            }
 
 class DesignerPanel(bpy.types.Panel):
-    bl_label = "Designer"
+    bl_label = "Meta World Designer"
     bl_idname = "OBJECT_PT1_my_panel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -622,151 +609,20 @@ class DesignerPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column()
-
-        col.label(text="Enter your credentials:")
-        col.prop(context.scene, "my_addr", icon="COLORSET_05_VEC")
-        col.prop(context.scene, "my_key", icon="COLORSET_04_VEC")
         
-        col.label(text="Enter smart contract")
-        col.prop(context.scene, "addr", icon="WORLD_DATA")
+        col.label(text="Enter Meta World Credentials:")
+        col.prop(context.scene, "Infura", icon="MESH_ICOSPHERE")
+        col.prop(context.scene, "Pinata_key", icon="KEY_HLT")
+        col.prop(context.scene, "Pinata_secret_key", icon="KEY_HLT") 
+        col.prop(context.scene, "World_address", icon="WORLD")   
+            
+        col.label(text="Enter Your Credentials:")
+        col.prop(context.scene, "My_address", icon="COLORSET_05_VEC")
+        col.prop(context.scene, "My_key", icon="COLORSET_04_VEC")        
         
         col.operator("myaddon.process_load_world")
         col.operator("myaddon.process_designer_text")
- 
-class ProcessWorldLoaderOperator(bpy.types.Operator):
-    bl_idname = "myaddon.process_load_world"
-    bl_label = "Load Meta World"
-    
-    def execute(self, context):
-        contract_address = context.scene.addr
-        contract = w3.eth.contract(address=contract_address, abi=contract_abi)
-        all_token_ids = contract.functions.getAllTokenIds().call()
-        for token_id in all_token_ids:
-            token_uri = contract.functions.getTokenURI(token_id).call()
-            # Send a GET request to the Pinata API to retrieve the file
-            response = requests.get(token_uri, headers=headers)
-
-            # Check if the request was successful
-            if response.status_code == 200:
-                # Extract the file content from the response
-                file_content = response.content
-
-                # Save the file to a local file
-                filepath = bpy.data.filepath
-                path_without_file = os.path.dirname(filepath)
-                full_filepath = path_without_file.replace("/", "\\")
-                saved_path = full_filepath + "\\" + str(token_id) + ".json"
-                with open(saved_path, "wb") as f:
-                    f.write(file_content)
-                with open(saved_path, 'r') as f:
-                    data = json.load(f)
-                    obj_uri =  data['image']
-                response = requests.get(obj_uri, headers=headers)
-                    
-                file_content = response.content
-
-                # loading the obj file
-                filepath = bpy.data.filepath
-                path_without_file = os.path.dirname(filepath)
-                full_filepath = path_without_file.replace("/", "\\")
-                saved_path = full_filepath + "\\" + str(token_id) + ".obj"
-                with open(saved_path, "wb") as f:
-                    f.write(file_content)
-                    
-                bpy.ops.import_scene.obj(filepath=saved_path)
-                    # Append the object from the source file to the current blendfile
-                    #with bpy.data.libraries.load(saved_path) as (data_from, data_to):
-                    #    data_to.objects = data_from.objects
-
-                    # Link the appended object to the current scene
-                    #for obj in data_to.objects:
-                    #    bpy.context.collection.objects.link(obj)       
         
-class ProcessMintOperator(bpy.types.Operator):
-    bl_idname = "myaddon.process_designer_text"
-    bl_label = "Mint 3D Object"
-    
-    def execute(self, context):
-        contract_address = context.scene.addr
-        contract = w3.eth.contract(address=contract_address, abi=contract_abi)
-        endpoint = "https://gateway.pinata.cloud/ipfs/"
-        
-        # Select active object
-        keep_object = bpy.context.object
-
-        # Iterate through all objects in the scene and remove them if they are not the keep_object
-        for obj in bpy.context.scene.objects:
-            if obj != keep_object:
-                bpy.data.objects.remove(obj, do_unlink=True)
-        
-        # Save Blend file
-        filepath = bpy.data.filepath
-        full_filepath = filepath.replace("/", "\\")
-        
-        # Save obj file
-        # Set the path to the output .obj file
-        output_path = os.path.dirname(os.path.dirname(__file__)) + "\\template.obj"
-
-        # Get the selected objects in the scene
-        selected_objects = bpy.context.selected_objects
-
-        # Export the selected objects as .obj
-        bpy.ops.export_scene.obj(filepath=output_path, use_selection=True, 
-                                  use_materials=False, 
-                                  use_normals=True)
-        
-        # Upload file to Pinata
-        with open(output_path, 'rb') as f:
-            url = 'https://api.pinata.cloud/pinning/pinFileToIPFS'
-            headers = {
-                'pinata_api_key': 'e3c4a8f9959c5bc970e3',
-                'pinata_secret_api_key': '06dbaccac51438159d5f9be50be03ea67eb9b0cb8dec0cec978cc4e6482cefa0'
-            }
-            data = {
-                'file': f
-            }
-            response = requests.post(url, headers=headers, files=data)
-        
-        response_json = json.loads(response.text)
-        pinata_hash = response_json['IpfsHash']
-        file_location = endpoint + pinata_hash
-        
-        #update template with location of a 3d model
-        output_path = "C://Users//stoly//Desktop//Blender" + "//template.json"
-
-        with open(output_path, 'r') as f:
-            data = json.load(f)
-            data['image'] = file_location
-
-        with open(output_path, 'w') as f:
-            json.dump(data, f)
-        
-        #upload json to ipfs
-        with open(output_path, 'rb') as f:
-            url = 'https://api.pinata.cloud/pinning/pinFileToIPFS'
-            headers = {
-                'pinata_api_key': 'e3c4a8f9959c5bc970e3',
-                'pinata_secret_api_key': '06dbaccac51438159d5f9be50be03ea67eb9b0cb8dec0cec978cc4e6482cefa0'
-            }
-            data = {
-                'file': f
-            }
-            response = requests.post(url, headers=headers, files=data)
-        response_json = json.loads(response.text)
-        pinata_hash = response_json['IpfsHash']
-        file_location = endpoint + pinata_hash
-        
-        postingCost = contract.functions.postingCost().call()
-        telescopeFee = contract.functions.postingCost().call()
-        
-        totalCost = postingCost + telescopeFee
-        
-        tx_hash = contract.functions.mint(str(context.scene.my_addr), file_location).transact({'from': str(context.scene.my_addr),"value": totalCost})
-        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-        self.report({'INFO'}, "3D Object has been minted successfully!")
-        
-        return {"FINISHED"}
-
 class CreatorPanel(bpy.types.Panel):
     bl_label = "Meta World Creator"
     bl_idname = "OBJECT_PT2_my_panel"
@@ -778,29 +634,218 @@ class CreatorPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column()
+        
+        col.label(text="Enter Meta World Credentials:")
+        col.prop(context.scene, "Infura", icon="MESH_ICOSPHERE")
+        col.prop(context.scene, "World_address", icon="WORLD")
+        
         col.label(text="Enter your credentials:")
-        col.prop(context.scene, "my_addr", icon="COLORSET_05_VEC")
-        col.prop(context.scene, "my_key", icon="COLORSET_04_VEC")
+        col.prop(context.scene, "My_address", icon="COLORSET_05_VEC")
+        col.prop(context.scene, "My_key", icon="COLORSET_04_VEC")
         
-        col.label(text="Enter smart contract")
-        col.prop(context.scene, "addr", icon="WORLD_DATA")
-        
-        col.prop(context.scene, "add_user")
-        col.prop(context.scene, "del_user")
+        col.prop(context.scene, "Add_designer", icon="ADD")
+        col.prop(context.scene, "Delete_designer", icon="GHOST_DISABLED")
         
         col.operator("myaddon.process_add_user")
         col.operator("myaddon.process_del_user")
+ 
+class ProcessWorldLoaderOperator(bpy.types.Operator):
+    bl_idname = "myaddon.process_load_world"
+    bl_label = "Load Meta World"
+    
+    def execute(self, context):
+        
+        # Connect to Mainnet/Testnet
+        infura = str(context.scene.Infura)
+        w3 = Web3(Web3.HTTPProvider(infura))
+        
+        # Pinata Credentials
+        pinata_api_key = str(context.scene.Pinata_key)
+        pinata_secret_key = str(context.scene.Pinata_secret_key)
+        headers = {
+                'pinata_api_key': pinata_api_key,
+                'pinata_secret_api_key': pinata_secret_key
+            }
+        
+        # Getting contract address
+        contract_address = str(context.scene.World_address)
+        
+        # Retrieving all minted object ids
+        contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+        total_tokens = contract.functions.totalSupply().call()
+        for i in range(total_tokens):
+            token_id = contract.functions.tokenByIndex(i).call()
+            token_owner = contract.functions.ownerOf(token_id).call()
+            if token_owner != '0x000000000000000000000000000000000000dEaD':
+                token_uri = contract.functions.getTokenURI(token_id).call()  
+                # Send a GET request to the Pinata API to retrieve the file
+                response = requests.get(token_uri, headers=headers)
+                # Check if the request was successful
+                if response.status_code == 200:
+                    # Extract the file content from the response
+                    file_content = response.content
+                    # Create a json file and save pinata json data in the file
+                    filepath = bpy.data.filepath
+                    path_without_file = os.path.dirname(filepath)
+                    full_filepath = path_without_file.replace("/", "\\")
+                    saved_path = full_filepath + "\\" + str(token_id) + ".json"
+                    with open(saved_path, "wb") as f:
+                        f.write(file_content)
+                    # Get .obj URL from the file
+                    with open(saved_path, 'r') as f:
+                        data = json.load(f)
+                        obj_uri = data['model']['url']
+                    # Get .obj file from pinata
+                    response = requests.get(obj_uri, headers=headers)
+                    file_content = response.content
+
+                    # Create a new .obj file and save the loaded object in the file
+                    filepath = bpy.data.filepath
+                    path_without_file = os.path.dirname(filepath)
+                    full_filepath = path_without_file.replace("/", "\\")
+                    saved_path = full_filepath + "\\" + str(token_id) + ".obj"
+                    with open(saved_path, "wb") as f:
+                        f.write(file_content)
+                    
+                    # Loading object into the current .blend file    
+                    bpy.ops.import_scene.obj(filepath=saved_path)
+        return {"FINISHED"}
+                           
+        
+class ProcessMintOperator(bpy.types.Operator):
+    bl_idname = "myaddon.process_designer_text"
+    bl_label = "Mint 3D Object"
+    
+    def execute(self, context):
+        
+        # Connect to Mainnet/Testnet
+        infura = str(context.scene.Infura)
+        w3 = Web3(Web3.HTTPProvider(infura))
+        
+        # Pinata Credentials
+        pinata_api_key = str(context.scene.Pinata_key)
+        pinata_secret_key = str(context.scene.Pinata_secret_key)
+        headers = {
+                'pinata_api_key': pinata_api_key,
+                'pinata_secret_api_key': pinata_secret_key
+            }
+        endpoint = "https://gateway.pinata.cloud/ipfs/"
+        
+        designer_address = context.scene.My_address
+        designer_key = context.scene.My_key
+        contract_address = context.scene.World_address
+        contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+        
+        # Select active object
+        keep_object = bpy.context.object
+        # Rename to add id to the name
+        new_object_name = str(contract.functions.totalSupply().call())
+        keep_object.name = new_object_name
+
+        # Iterate over all objects in the scene and remove them except for keep_object
+        for obj in bpy.context.scene.objects:
+            if obj != keep_object:
+                bpy.data.objects.remove(obj, do_unlink=True)
+        
+        # Save obj file
+        # Set the path to the output .obj file
+        output_path = os.path.dirname(os.path.dirname(__file__)) + "\\" + new_object_name + ".obj"
+
+        # Get the selected object in the scene
+        selected_objects = bpy.context.selected_objects
+
+        # Export the selected objects as .obj
+        bpy.ops.export_scene.obj(filepath=output_path, use_selection=True, 
+                                  use_materials=False, 
+                                  use_normals=True)
+        
+        # Upload the .obj file to Pinata
+        with open(output_path, 'rb') as obj_file:
+            url = 'https://api.pinata.cloud/pinning/pinFileToIPFS'
+            data = {
+                'file': obj_file
+            }
+            response = requests.post(url, headers=headers, files=data)
+        
+        response_json = json.loads(response.text)
+        pinata_hash = response_json['IpfsHash']
+        file_location = endpoint + pinata_hash
+        
+        # Update template with .obj file location
+        json_template = os.path.dirname(os.path.dirname(__file__)) + "\\template.json"        
+        with open(json_template, 'r') as f:
+            data = json.load(f)
+            #data['image'] = file_location
+            nft_name = "Telescope " + new_object_name 
+            data['name'] = nft_name
+            data['model']['url'] = file_location
+        with open(json_template, 'w') as f:
+            json.dump(data, f)
+        
+        # Upload json to IPFS
+        with open(json_template, 'rb') as f:
+            url = 'https://api.pinata.cloud/pinning/pinFileToIPFS'
+            data = {
+                'file': f
+                }
+            response = requests.post(url, headers=headers, files=data)
+        response_json = json.loads(response.text)
+        pinata_hash = response_json['IpfsHash']
+        file_location = endpoint + pinata_hash
+        
+        # Getting total posting fee
+        postingCost = contract.functions.postingCost().call()
+        telescopeFee = contract.functions.telescopeFee().call()
+        totalCost = postingCost + telescopeFee
+
+        
+        # Minting new object
+        transaction = contract.functions.mint(designer_address, file_location).build_transaction({
+        'nonce': w3.eth.get_transaction_count(designer_address),
+        'gas': 300000,
+        'gasPrice': w3.eth.gas_price,
+        'value': totalCost})
+
+        # Sign and send the transaction
+        signed_txn = w3.eth.account.sign_transaction(transaction, private_key=designer_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+
+        # Wait for the transaction to be mined
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)                
+        
+        self.report({'INFO'}, "3D Object has been minted successfully!")
+        
+        return {"FINISHED"}
+    
 
 class ProcessAdminAddUserOperator(bpy.types.Operator):
     bl_idname = "myaddon.process_add_user"
     bl_label = "Add Designer"
     
     def execute(self, context):
-        my_addr = context.scene.my_addr
-        contract_address = context.scene.addr
+        # Connect to Mainnet/Testnet
+        infura = str(context.scene.Infura)
+        w3 = Web3(Web3.HTTPProvider(infura))
+        
+        creator_address = str(context.scene.My_address)
+        creator_key = str(context.scene.My_key)
+        add_designer = str(context.scene.Add_designer)
+        
+        contract_address = str(context.scene.World_address)
         contract = w3.eth.contract(address=contract_address, abi=contract_abi)
-        tx_hash = contract.functions.addNewMember(str(context.scene.add_user)).transact({"from": str(context.scene.my_addr)})
-        tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+        
+        transaction = contract.functions.addNewMember(add_designer).build_transaction({
+        'nonce': w3.eth.get_transaction_count(creator_address),
+        'gas': 300000,
+        'gasPrice': w3.eth.gas_price})
+
+        # Sign and send the transaction
+        signed_txn = w3.eth.account.sign_transaction(transaction, private_key=creator_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+
+        # Wait for the transaction to be mined
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)         
+       
         self.report({'INFO'}, "Designer has been successfully added to the World!")
         
         return {"FINISHED"}   
@@ -810,23 +855,43 @@ class ProcessAdminDelUserOperator(bpy.types.Operator):
     bl_label = "Remove Designer"
     
     def execute(self, context):
-        my_addr = context.scene.my_addr
-        contract_address = context.scene.addr
+        # Connect to Mainnet/Testnet
+        infura = str(context.scene.Infura)
+        w3 = Web3(Web3.HTTPProvider(infura))
         
+        creator_address = str(context.scene.My_address)
+        creator_key = str(context.scene.My_key)
+        del_designer = str(context.scene.Delete_designer)
+        
+        contract_address = str(context.scene.World_address)
         contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+        
+        transaction = contract.functions.removeMember(del_designer).build_transaction({
+        'nonce': w3.eth.get_transaction_count(creator_address),
+        'gas': 300000,
+        'gasPrice': w3.eth.gas_price})
 
-        tx_hash = contract.functions.removeMember(str(context.scene.del_user)).transact({"from": str(context.scene.my_addr)})
-        tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-        self.report({'INFO'}, "Designer has been successfully removed from the community!")
+        # Sign and send the transaction
+        signed_txn = w3.eth.account.sign_transaction(transaction, private_key=creator_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+
+        # Wait for the transaction to be mined
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)         
+       
+        self.report({'INFO'}, "Designer has been successfully removed!")
+        
         
         return {"FINISHED"} 
 
 def register():
-    bpy.types.Scene.my_addr = bpy.props.StringProperty()
-    bpy.types.Scene.my_key = bpy.props.StringProperty()
-    bpy.types.Scene.addr = bpy.props.StringProperty()
-    bpy.types.Scene.add_user = bpy.props.StringProperty()
-    bpy.types.Scene.del_user = bpy.props.StringProperty()
+    bpy.types.Scene.Infura = bpy.props.StringProperty()
+    bpy.types.Scene.Pinata_key = bpy.props.StringProperty()
+    bpy.types.Scene.Pinata_secret_key = bpy.props.StringProperty()
+    bpy.types.Scene.My_address = bpy.props.StringProperty()
+    bpy.types.Scene.My_key = bpy.props.StringProperty()
+    bpy.types.Scene.World_address = bpy.props.StringProperty()
+    bpy.types.Scene.Add_designer = bpy.props.StringProperty()
+    bpy.types.Scene.Delete_designer = bpy.props.StringProperty()
     bpy.utils.register_class(DesignerPanel)
     bpy.utils.register_class(CreatorPanel)
     bpy.utils.register_class(ProcessMintOperator)
@@ -835,11 +900,14 @@ def register():
     bpy.utils.register_class(ProcessAdminDelUserOperator)
 
 def unregister():
-    del bpy.types.Scene.my_addr
-    del bpy.types.Scene.my_key
-    del bpy.types.Scene.addr
-    del bpy.types.Scene.add_user
-    del bpy.types.Scene.del_user
+    del bpy.types.Scene.Infura
+    del bpy.types.Scene.Pinata_key
+    del bpy.types.Scene.Pinata_secret_key
+    del bpy.types.Scene.My_address
+    del bpy.types.Scene.My_key
+    del bpy.types.Scene.World_address
+    del bpy.types.Scene.Add_designer
+    del bpy.types.Scene.Delete_designer
     bpy.utils.unregister_class(DesignerPanel)
     bpy.utils.unregister_class(CreatorPanel)
     bpy.utils.unregister_class(ProcessMintOperator)
