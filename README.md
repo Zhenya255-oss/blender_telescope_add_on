@@ -8,8 +8,6 @@ Welcome to the telescope.io! The first ever Metaverse platform for 3D designers.
 
 2. Download the free Blender add-on "Telescope-Blender Metaverse"
 
-https://github.com/Zhenya255-oss/blender_telescope_add_on
-
 3. Contact us to create your space in the Meta Universe.
 
 4. We will reply to you with an address link.
