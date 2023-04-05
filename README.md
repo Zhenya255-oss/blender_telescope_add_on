@@ -13,7 +13,7 @@ the github repository blender_telescope_add_on.
 
 3. Launch Blender. Go to Edit-> Preferences-> Install-> Enter the path for the downloaded telescope.py file-> Install add-on.
 
-4. Make sure to enable the add-on in Edit->Preferences. Find the "Telescope-Blender Metaverse" add-on in the list of all installed add-ons and check in the add on field. Note the installation path.
+4. Make sure to enable the add-on in Edit->Preferences. Find the "Telescope-Blender Metaverse" add-on in the list of all installed add-ons and put a check mark in the add-on field. Note the installation path.
 
 5. Download the lib folder from the blender_telescope_add_on github repository
 
@@ -22,11 +22,11 @@ the github repository blender_telescope_add_on.
 7. Contact us to create your Metaworld on blockchain.
 stolyarenkoted@gmail.com
 
-8. We will reply to you with an address link to your Metaworld.
+8. We will reply to you with an address to your Metaworld.
 
 9. Open the main add-on panel. 
 
-10. Enter the new World address.
+10. Enter the address.
 
 7. Add new 3D designers.
 
