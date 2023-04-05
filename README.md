@@ -6,10 +6,10 @@ Welcome to the telescope.io! The first ever Metaverse platform for 3D designers.
 
 1. Install Blender.
 
-2. Download the free Blender add-on "Telescope-Blender Metaverse" by downloading the blockchainInterface.py script from 
+2. Download the free Blender add-on "Telescope-Blender Metaverse" by downloading the telescope.py script from 
 the github repository blender_telescope_add_on
 
-3. Contact us to create your space in the Meta Universe.
+3. Contact us to create your space in the Meta Universe
 stolyarenkoted@gmail.com
 
 4. We will reply to you with an address link.
