@@ -2,7 +2,7 @@ bl_info = {
     "name" : "Telescope-Blender Metaverse",
     "author" : "Yevgeniy Stolyarenko",
     "version" : (1,0),
-    "blender" : (3,5,0),
+    "blender" : (3,4,0),
     "location" : "View3d > Tool",
     "warning" : "",
     "wiki_url" : "",
