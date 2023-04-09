@@ -1,3 +1,15 @@
+bl_info = {
+    "name" : "Telescope-Blender Metaverse",
+    "author" : "Yevgeniy Stolyarenko",
+    "version" : (1,0),
+    "blender" : (3,5,0),
+    "location" : "View3d > Tool",
+    "warning" : "",
+    "wiki_url" : "",
+    "category" : "Add Mesh",
+}
+
+
 import bpy
 import os
 import sys
@@ -6,8 +18,8 @@ import json
 
 
 # web3 dependency support
-lib_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "lib")
-sys.path += [lib_dir]
+#lib_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "lib1")
+#sys.path += [lib_dir]
 from web3 import Web3
 
 # Contract ABI definition
@@ -686,7 +698,7 @@ class ProcessWorldLoaderOperator(bpy.types.Operator):
                     file_content = response.content
                     # Create a json file and save pinata json data in the file
                     filepath = bpy.data.filepath
-                    path_without_file = os.path.dirname(filepath)
+                    path_without_file = os.path.dirname(os.path.dirname(filepath))
                     full_filepath = path_without_file.replace("/", "\\")
                     saved_path = full_filepath + "\\" + str(token_id) + ".json"
                     with open(saved_path, "wb") as f:
@@ -749,7 +761,7 @@ class ProcessMintOperator(bpy.types.Operator):
         
         # Save obj file
         # Set the path to the output .obj file
-        output_path = os.path.dirname(os.path.dirname(__file__)) + "\\" + new_object_name + ".obj"
+        output_path = os.path.dirname(os.path.dirname(__file__)) + "\\" + "addons\\" + new_object_name + ".obj"
 
         # Get the selected object in the scene
         selected_objects = bpy.context.selected_objects
@@ -772,7 +784,7 @@ class ProcessMintOperator(bpy.types.Operator):
         file_location = endpoint + pinata_hash
         
         # Update template with .obj file location
-        json_template = os.path.dirname(os.path.dirname(__file__)) + "\\template.json"        
+        json_template = os.path.dirname(os.path.dirname(__file__)) + "\\addons" + "\\template.json"        
         with open(json_template, 'r') as f:
             data = json.load(f)
             #data['image'] = file_location
